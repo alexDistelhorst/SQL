@@ -1,0 +1,101 @@
+IF OBJECT_ID('dbo.tblDemoSubtypeGrad', 'U') IS NOT NULL
+	DROP TABLE tblDemoSubtypeGrad;
+IF OBJECT_ID('dbo.tblDemoSubtypeUndergrad', 'U') IS NOT NULL
+	DROP TABLE tblDemoSubtypeUndergrad;
+IF OBJECT_ID('dbo.tblDemoSupertypeStudent', 'U') IS NOT NULL
+	DROP TABLE tblDemoSupertypeStudent;
+
+
+CREATE TABLE tblDemoSupertypeStudent (
+
+	StudentID int NOT NULL IDENTITY (1,1) PRIMARY KEY,
+	LastName varchar (55) NULL,
+	FirstName varchar (45) NULL,
+	Email varchar(100) NULL UNIQUE,
+	ContactPhone varchar(20) NULL,
+	StudentType char(1) NOT NULL DEFAULT 'U',
+	CONSTRAINT 	tblDemoSupertypeStudentAK UNIQUE(StudentID, StudentType),
+	CONSTRAINT tblDemoSupertypeStudentStudentTypeCheck 
+		CHECK (StudentType='U' or StudentType='G')
+);
+
+
+CREATE TABLE tblDemoSubtypeGrad (
+	StudentID int NOT NULL PRIMARY KEY,--not an identity field
+	UndergradGPA float NULL,
+	GMATScore int NULL,
+	StudentType char(1) NOT NULL DEFAULT 'G',
+    CONSTRAINT GradSubtypeV2FK1 FOREIGN KEY (StudentID)
+	REFERENCES tblDemoSupertypeStudent(StudentID)
+	ON UPDATE CASCADE
+	ON DELETE NO ACTION,
+    CONSTRAINT tblDemoSubtypeGradFK 
+	FOREIGN KEY(StudentID, StudentType)
+	REFERENCES tblDemoSupertypeStudent(StudentID, StudentType)
+	ON UPDATE NO ACTION
+	ON DELETE NO ACTION,
+    CONSTRAINT tblDemoSubtypeGradGradStudenttypeCheck CHECK (StudentType = 'G')
+
+);
+
+
+CREATE TABLE tblDemoSubtypeUndergrad (
+	StudentID int NOT NULL PRIMARY KEY,--not an identity field
+	HighSchoolGPA float NULL,
+	SATScore int NULL,
+	StudentType char(1) NOT NULL DEFAULT 'U',
+    CONSTRAINT UndergradSubtypeV2FK1 FOREIGN KEY (StudentID)
+	REFERENCES tblDemoSupertypeStudent(StudentID)
+	ON UPDATE CASCADE
+	ON DELETE NO ACTION,
+    CONSTRAINT tblDemoSubtypeUndergradFK 
+       FOREIGN KEY(StudentID, StudentType)
+	REFERENCES tblDemoSupertypeStudent(StudentID, StudentType)
+	ON UPDATE NO ACTION
+	ON DELETE NO ACTION,
+    CONSTRAINT tblDemoSubtypeUndergradUndergradStudenttypeCheck CHECK (StudentType='U')
+
+);
+
+select * from tblDemoSupertypeStudent;
+select * from tblDemoSubtypeGrad;
+select * from tblDemoSubtypeUndergrad;
+
+delete from tblDemoSubtypeUndergrad;
+delete from tblDemoSubtypeGrad;
+--tuncate won't work because the foreign key. To make it work, foreign keys have to be dropped
+--Try to uncomment and execute the following statement, you will get an error message
+--truncate table tblDemoSupertypeStudent;
+--delete all records from tblDemoSupertypeStudent will work as long as there is no corresponding record in the subtype tables
+--be careful when you insert data into the subtype tables: the primary key values won't start from 1
+delete from tblDemoSupertypeStudent;
+
+
+insert into tblDemoSupertypeStudent values ('Chen', 'Xiaofeng', 'chenx@wwu.edu','360-650-3913','G');
+insert into tblDemoSupertypeStudent (LastName, FirstName, Email, ContactPhone) 
+values ('Jackson', 'Kay', 'jacksonk@wwu.edu','360-650-9999');
+
+select * from tblDemoSupertypeStudent
+--inserting a graduate student to tblDemoSubtypeUndergrad won't work. The student ID may need to be changed 
+--in the example
+insert into tblDemoSubtypeUndergrad values (1, 3.5, 1800, 'U')
+
+--inserting a undergraduate student to tblDemoSubtypeUndergrad will work
+insert into tblDemoSubtypeUndergrad values (2, 3.5, 1800, 'U')
+select * from tblDemoSupertypeStudent;
+select * from tblDemoSubtypeGrad;
+select * from tblDemoSubtypeUndergrad;
+--Remove the composite foreign keys from the subtype tables:
+--a student in supertype table can be entered into both tables
+
+ALTER TABLE tblDemoSubtypeUndergrad DROP CONSTRAINT UndergradSubtypeV2FK2;
+ALTER TABLE tblDemoSubtypeGrad DROP CONSTRAINT GradSubtypeV2FK2;
+
+----inserting a graduate student to tblDemoSubtypeUndergrad works now. The student ID may need to be changed 
+--in the example
+insert into tblDemoSubtypeUndergrad values (1, 3.5, 1800, 'U')
+
+----inserting a undergraduate student to tblDemoSubtypeGrad works too. The undergrad students
+--appear in both subtype tables. The student ID may need to be changed in the example
+
+insert into tblDemoSubtypeGrad values (2, 3.5, 1800, 'G')
